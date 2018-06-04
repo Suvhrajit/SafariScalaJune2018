@@ -1,14 +1,26 @@
 package dates
 
+import scala.annotation.tailrec
+
 object MyDate {
   var timesUsed: Int = 0;
 
   def apply(d: Int, m: Int, y: Int): MyDate = {
     println("invocation of MyDate.apply...")
+    if (d < 1 || d > 31 || m < 1 || m > 12)
+      throw new IllegalArgumentException("Bad date!");
     new MyDate(d, m, y)
   }
 
-  def dayName(d: Int): String = {
+  def isLeap(y: Int): Boolean =
+    y % 4 == 0 && (y % 100 != 0 || y % 400 == 0)
+
+  def daysInMonth(m: Int, y: Int): Int =
+    if (m == 9 || m == 4 || m == 6 || m == 11) 30
+    else if (m == 2) { if (isLeap(y)) 29 else 28 }
+    else 31
+
+  def nameOfDay(d: Int): String = {
     timesUsed += 1
     d match {
       case 0 => "Saturday"
@@ -29,21 +41,35 @@ object MyDate {
   }
 }
 
-class MyDate private(d: Int, m: Int, y: Int) {
-
+//class MyDate private(d: Int, m: Int, y: Int) {
+//
+//  import MyDate._
+//
+//  private val day: Int = d
+//  val month: Int = m
+//  val year: Int = y
+class MyDate private(val day: Int, private val month: Int, private val year: Int) {
   import MyDate._
-
-  val day: Int = d
-  val month: Int = m
-  val year: Int = y
   println(s"I'm in the body of my class... this *is* the constructor")
 
-  def dayName: String = dates.MyDate.dayName(dayOfWeek(day, month, year))
+  def dayName: String = nameOfDay(dayOfWeek(day, month, year))
+  def tomorrow: MyDate = addDays(1)
 
-  def tomorrow: MyDate = new MyDate(day + 1, month, year)
+  def this(d: Int, m: Int) = {
+    this(d, m, 2018)
+    println("in auxiliary constructor")
+  }
+
+  @tailrec final def addDays(n: Int): MyDate =
+    if (n + day < daysInMonth(month, year)) new MyDate(n + day, month, year)
+    else {
+      val m = month + 1 // what if we wrap to month 13...
+      val daysLeft = n - (daysInMonth(month, year) - day)
+      (new MyDate(1, m, year)).addDays(daysLeft)
+    }
 
   override def toString: String =
-    s"MyDate of ${dayName(dayOfWeek(day, month, year))} day: $day month: $month year: $year"
+    s"MyDate of ${nameOfDay(dayOfWeek(day, month, year))} day: $day month: $month year: $year"
 }
 
 object TryMyDate {
@@ -63,6 +89,9 @@ object TryMyDate {
     println(s"${d.dayName}")
 
     println(s"tomorrow tomorrow is ${d1.tomorrow}")
+    println(s"plus five days is ${d1.addDays(60)}")
+
+    println(s"Using auxiliary constructor ${new MyDate(4, 6)}")
   }
 }
 
